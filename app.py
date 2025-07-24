@@ -12,6 +12,7 @@ def optimize():
     ninjas = data['ninjas']
     combos = data['combos']
     priority = data.get('priority', 'hp')
+    main_ninjas = data.get('main_ninjas', [])[:3]  # Ambil maksimal 3
 
     POP_SIZE = 200
     GENERATIONS = 100
@@ -49,11 +50,16 @@ def optimize():
             n = random.choice(ninjas)
             if n not in child:
                 child.append(n)
+        # pastikan main_ninjas tetap ada
+        for mn in main_ninjas:
+            if mn not in child:
+                replace_idx = random.randint(len(main_ninjas), 14)
+                child[replace_idx] = mn
         return child
 
     def mutate(team):
         if random.random() < MUTATION_RATE:
-            idx = random.randint(0, 14)
+            idx = random.randint(len(main_ninjas), 14)  # jangan ganti posisi 0–2
             replacement = random.choice([n for n in ninjas if n not in team])
             team[idx] = replacement
         return team
@@ -64,7 +70,13 @@ def optimize():
     best_result = None
 
     for _ in range(RUNS):
-        population = [random.sample(ninjas, 15) for _ in range(POP_SIZE)]
+        def generate_individual():
+            pool = [n for n in ninjas if n not in main_ninjas]
+            individual = random.sample(pool, 15 - len(main_ninjas))
+            return main_ninjas + individual
+
+        population = [generate_individual() for _ in range(POP_SIZE)]
+
         for _ in range(GENERATIONS):
             scored = [(team, evaluate(team)) for team in population]
             scored.sort(key=lambda x: fitness(x[1]), reverse=True)
