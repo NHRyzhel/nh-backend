@@ -13,11 +13,11 @@ def optimize():
     combos = data['combos']
     priority = data.get('priority', 'hp')
 
-    POP_SIZE = 200
+    POP_SIZE = 300
     GENERATIONS = 100
     MUTATION_RATE = 0.1
     ELITE_COUNT = 5
-    RUNS = 3
+    RUNS = 4
     TOURNAMENT_SIZE = 5
 
     def total_stat(combo_list):
@@ -32,7 +32,16 @@ def optimize():
         return total_stat(active)
 
     def fitness(stat):
-        return sum(stat.values()) if priority == 'total' else stat[priority]
+        if priority == 'total':
+            return sum(stat.values())
+        elif priority == 'atk+hp':
+            return stat['atk'] + stat['hp']
+        elif priority == 'hp+agi':
+            return stat['hp'] + stat['agi']
+        elif priority == 'atk+hp+agi':
+            return stat['atk'] + stat['hp'] + stat['agi']
+        else:
+            return stat.get(priority, 0)
 
     def crossover(p1, p2):
         child = list(set(p1[:8] + p2[8:]))
