@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import random
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -47,28 +48,33 @@ def optimize():
             team[idx] = replacement
         return team
 
-    population = [random.sample(ninjas, 15) for _ in range(POP_SIZE)]
+    def run_ga():
+        population = [random.sample(ninjas, 15) for _ in range(POP_SIZE)]
 
-    for _ in range(GENERATIONS):
-        scored = [(team, evaluate(team)) for team in population]
-        scored.sort(key=lambda x: fitness(x[1]), reverse=True)
-        top = scored[:POP_SIZE // 2]
-        next_gen = [t for t, _ in top]
-        while len(next_gen) < POP_SIZE:
-            p1, p2 = random.sample(top, 2)
-            child = mutate(crossover(p1[0], p2[0]))
-            next_gen.append(child)
-        population = next_gen
+        for _ in range(GENERATIONS):
+            scored = [(team, evaluate(team)) for team in population]
+            scored.sort(key=lambda x: fitness(x[1]), reverse=True)
+            top = scored[:POP_SIZE // 2]
+            elite_count = 5
+            next_gen = [t for t, _ in top[:elite_count]]
+            while len(next_gen) < POP_SIZE:
+                p1, p2 = random.sample(top, 2)
+                child = mutate(crossover(p1[0], p2[0]))
+                next_gen.append(child)
+            population = next_gen
 
-    best_team = scored[0][0]
-    best_stat = scored[0][1]
+        best_team = scored[0][0]
+        best_stat = scored[0][1]
+        return best_team, best_stat
+
+    # Jalankan GA dua kali, ambil yang terbaik
+    results = [run_ga(), run_ga()]
+    best_team, best_stat = max(results, key=lambda x: fitness(x[1]))
 
     return jsonify({
         'best_team': best_team,
         'stat': best_stat
     })
-
-import os
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
