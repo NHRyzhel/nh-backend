@@ -13,9 +13,12 @@ def optimize():
     combos = data['combos']
     priority = data.get('priority', 'hp')
 
-    POP_SIZE = 100
+    POP_SIZE = 200
     GENERATIONS = 100
     MUTATION_RATE = 0.1
+    ELITE_COUNT = 5
+    RUNS = 3
+    TOURNAMENT_SIZE = 5
 
     def total_stat(combo_list):
         total = {'atk': 0, 'def': 0, 'hp': 0, 'agi': 0}
@@ -29,9 +32,7 @@ def optimize():
         return total_stat(active)
 
     def fitness(stat):
-        if priority == 'total':
-            return sum(stat.values())
-        return stat[priority]
+        return sum(stat.values()) if priority == 'total' else stat[priority]
 
     def crossover(p1, p2):
         child = list(set(p1[:8] + p2[8:]))
@@ -48,28 +49,33 @@ def optimize():
             team[idx] = replacement
         return team
 
-    def run_ga():
-        population = [random.sample(ninjas, 15) for _ in range(POP_SIZE)]
+    def tournament_selection(scored):
+        return max(random.sample(scored, TOURNAMENT_SIZE), key=lambda x: fitness(x[1]))
 
+    best_result = None
+
+    for _ in range(RUNS):
+        population = [random.sample(ninjas, 15) for _ in range(POP_SIZE)]
         for _ in range(GENERATIONS):
             scored = [(team, evaluate(team)) for team in population]
             scored.sort(key=lambda x: fitness(x[1]), reverse=True)
-            top = scored[:POP_SIZE // 2]
-            elite_count = 5
-            next_gen = [t for t, _ in top[:elite_count]]
+            elites = [t for t, _ in scored[:ELITE_COUNT]]
+            next_gen = elites[:]
             while len(next_gen) < POP_SIZE:
-                p1, p2 = random.sample(top, 2)
+                p1 = tournament_selection(scored)
+                p2 = tournament_selection(scored)
                 child = mutate(crossover(p1[0], p2[0]))
                 next_gen.append(child)
             population = next_gen
 
-        best_team = scored[0][0]
-        best_stat = scored[0][1]
-        return best_team, best_stat
+        final_scored = [(team, evaluate(team)) for team in population]
+        final_scored.sort(key=lambda x: fitness(x[1]), reverse=True)
+        top_team = final_scored[0]
 
-    # Jalankan GA dua kali, ambil yang terbaik
-    results = [run_ga(), run_ga()]
-    best_team, best_stat = max(results, key=lambda x: fitness(x[1]))
+        if not best_result or fitness(top_team[1]) > fitness(best_result[1]):
+            best_result = top_team
+
+    best_team, best_stat = best_result
 
     return jsonify({
         'best_team': best_team,
