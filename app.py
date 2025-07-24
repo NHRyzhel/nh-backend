@@ -13,11 +13,11 @@ def optimize():
     combos = data['combos']
     priority = data.get('priority', 'hp')
 
-    POP_SIZE = 300
+    POP_SIZE = 200
     GENERATIONS = 100
     MUTATION_RATE = 0.1
     ELITE_COUNT = 5
-    RUNS = 4
+    RUNS = 3
     TOURNAMENT_SIZE = 5
 
     def total_stat(combo_list):
