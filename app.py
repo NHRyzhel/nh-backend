@@ -45,16 +45,16 @@ def optimize():
             return stat.get(priority, 0)
 
     def crossover(p1, p2):
-        child = list(set(p1[:8] + p2[8:]))
+        base = [n for n in (p1[:8] + p2[8:]) if n not in main_ninjas]
+        child = []
+        for n in base:
+            if n not in child and len(child) < 15 - len(main_ninjas):
+                child.append(n)
+        child = main_ninjas + child
         while len(child) < 15:
             n = random.choice(ninjas)
             if n not in child:
                 child.append(n)
-        # pastikan main_ninjas tetap ada
-        for mn in main_ninjas:
-            if mn not in child:
-                replace_idx = random.randint(len(main_ninjas), 14)
-                child[replace_idx] = mn
         return child
 
     def mutate(team):
