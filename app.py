@@ -103,6 +103,22 @@ def optimize():
         'stat': best_stat
     })
 
+@app.route('/stats', methods=['POST'])
+def get_team_stats():
+    data = request.get_json()
+    team = data.get('team', [])
+    combos = data.get('combos', [])
+
+    def total_stat(combo_list):
+        total = {'atk': 0, 'def': 0, 'hp': 0, 'agi': 0}
+        for c in combo_list:
+            for key in total:
+                total[key] += int(c['attributes'].get(key, 0))
+        return total
+
+    active = [c for c in combos if all(n in team for n in c['ninjas'])]
+    return jsonify(total_stat(active))
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
