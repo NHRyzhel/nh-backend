@@ -72,6 +72,10 @@ def optimize():
                 team[i] = missing[idx]
                 idx += 1
 
+        team = [n for n in team if n not in main_ninjas]
+
+        team = team[:6] + main_ninjas + team[6:]
+
         return team
 
     def complete_team(team):
