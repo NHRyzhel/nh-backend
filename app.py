@@ -118,7 +118,7 @@ def optimize():
     preset_team = fill_null_slots(preset_team)
     preset_team = complete_team(preset_team)
     preset_stat = evaluate(preset_team)
-
+    best_result = None
     for _ in range(RUNS):
         def generate_individual():
             pool = [n for n in ninjas if n not in main_ninjas]
