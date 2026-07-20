@@ -2,9 +2,13 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import random
 import os
+import json
 
 app = Flask(__name__)
 CORS(app)
+
+with open("deploybest-preset.json", "r", encoding="utf-8") as f:
+    deploy_presets = json.load(f)
 
 @app.route('/optimize', methods=['POST'])
 def optimize():
@@ -44,6 +48,47 @@ def optimize():
         else:
             return stat.get(priority, 0)
 
+    def find_best_preset():
+        best_name = None
+        best_team = None
+        best_match = -1
+
+        for name, preset in deploy_presets.items():
+            match = sum(1 for n in main_ninjas if n in preset)
+
+            if match > best_match:
+                best_match = match
+                best_name = name
+                best_team = preset
+
+        return best_name, best_team
+
+    def fill_null_slots(team):
+        team = team[:]
+
+        missing = [n for n in main_ninjas if n not in team]
+
+        idx = 0
+        for i in range(len(team)):
+            if team[i] is None and idx < len(missing):
+                team[i] = missing[idx]
+                idx += 1
+
+        return team
+
+    def complete_team(team):
+        team = team[:]
+
+        available = [n for n in ninjas if n not in team]
+
+        idx = 0
+        for i in range(len(team)):
+            if team[i] is None:
+                team[i] = available[idx]
+                idx += 1
+
+        return team
+
     def crossover(p1, p2):
         base = [n for n in (p1[:8] + p2[8:]) if n not in main_ninjas]
         child = []
@@ -67,7 +112,12 @@ def optimize():
     def tournament_selection(scored):
         return max(random.sample(scored, TOURNAMENT_SIZE), key=lambda x: fitness(x[1]))
 
-    best_result = None
+    preset_name, preset_team = find_best_preset()
+    print("Preset:", preset_name)
+    print("Team:", preset_team)
+    preset_team = fill_null_slots(preset_team)
+    preset_team = complete_team(preset_team)
+    preset_stat = evaluate(preset_team)
 
     for _ in range(RUNS):
         def generate_individual():
@@ -97,27 +147,19 @@ def optimize():
             best_result = top_team
 
     best_team, best_stat = best_result
+    print("Preset fitness:", fitness(preset_stat))
+    print("GA fitness:", fitness(best_stat))
+
+    if fitness(preset_stat) > fitness(best_stat):
+        best_team = preset_team
+        best_stat = preset_stat
 
     return jsonify({
-        'best_team': best_team,
-        'stat': best_stat
+        "best_team": best_team,
+        "stat": best_stat,
+        "source": "Preset" if best_team == preset_team else "GA",
+        "preset_name": preset_name if best_team == preset_team else None
     })
-
-@app.route('/stats', methods=['POST'])
-def get_team_stats():
-    data = request.get_json()
-    team = data.get('team', [])
-    combos = data.get('combos', [])
-
-    def total_stat(combo_list):
-        total = {'atk': 0, 'def': 0, 'hp': 0, 'agi': 0}
-        for c in combo_list:
-            for key in total:
-                total[key] += int(c['attributes'].get(key, 0))
-        return total
-
-    active = [c for c in combos if all(n in team for n in c['ninjas'])]
-    return jsonify(total_stat(active))
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
