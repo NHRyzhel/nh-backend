@@ -49,19 +49,17 @@ def optimize():
             return stat.get(priority, 0)
 
     def find_best_preset():
-        best_name = None
-        best_team = None
-        best_match = -1
-
         for name, preset in deploy_presets.items():
+
             match = sum(1 for n in main_ninjas if n in preset)
+            missing = len(main_ninjas) - match
+            null_count = preset.count(None)
 
-            if match > best_match:
-                best_match = match
-                best_name = name
-                best_team = preset
+            if null_count >= missing:
+                return name, preset
 
-        return best_name, best_team
+        first_name = next(iter(deploy_presets))
+        return first_name, deploy_presets[first_name]
 
     def fill_null_slots(team):
         team = team[:]
