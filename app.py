@@ -115,65 +115,68 @@ def optimize():
         return max(random.sample(scored, TOURNAMENT_SIZE), key=lambda x: fitness(x[1]))
 
 
-best_result = None
-preset_name = None
+    best_result = None
+    preset_name = None
 
-use_preset = len(ninjas) == len(main_ninjas)
+    # Gunakan preset hanya jika user hanya memilih 3 ninja utama
+    use_preset = len(ninjas) == 3
 
-if use_preset:
-    preset_name, preset_team = find_best_preset()
-    print("Preset:", preset_name)
-    print("Team:", preset_team)
+    if use_preset:
+        preset_name, preset_team = find_best_preset()
+        print("Preset:", preset_name)
+        print("Team:", preset_team)
 
-    preset_team = fill_null_slots(preset_team)
-    preset_team = complete_team(preset_team)
-    preset_stat = evaluate(preset_team)
+        preset_team = fill_null_slots(preset_team)
+        preset_team = complete_team(preset_team)
+        preset_stat = evaluate(preset_team)
 
-for _ in range(RUNS):
-    def generate_individual():
-        pool = [n for n in ninjas if n not in main_ninjas]
-        individual = random.sample(pool, 15 - len(main_ninjas))
-        return main_ninjas + individual
+    for _ in range(RUNS):
+        def generate_individual():
+            pool = [n for n in ninjas if n not in main_ninjas]
+            individual = random.sample(pool, 15 - len(main_ninjas))
+            return main_ninjas + individual
 
-    population = [generate_individual() for _ in range(POP_SIZE)]
+        population = [generate_individual() for _ in range(POP_SIZE)]
 
-    for _ in range(GENERATIONS):
-        scored = [(team, evaluate(team)) for team in population]
-        scored.sort(key=lambda x: fitness(x[1]), reverse=True)
+        for _ in range(GENERATIONS):
+            scored = [(team, evaluate(team)) for team in population]
+            scored.sort(key=lambda x: fitness(x[1]), reverse=True)
 
-        elites = [t for t, _ in scored[:ELITE_COUNT]]
-        next_gen = elites[:]
+            elites = [t for t, _ in scored[:ELITE_COUNT]]
+            next_gen = elites[:]
 
-        while len(next_gen) < POP_SIZE:
-            p1 = tournament_selection(scored)
-            p2 = tournament_selection(scored)
-            child = mutate(crossover(p1[0], p2[0]))
-            next_gen.append(child)
+            while len(next_gen) < POP_SIZE:
+                p1 = tournament_selection(scored)
+                p2 = tournament_selection(scored)
+                child = mutate(crossover(p1[0], p2[0]))
+                next_gen.append(child)
 
-        population = next_gen
+            population = next_gen
 
-    final_scored = [(team, evaluate(team)) for team in population]
-    final_scored.sort(key=lambda x: fitness(x[1]), reverse=True)
-    top_team = final_scored[0]
+        final_scored = [(team, evaluate(team)) for team in population]
+        final_scored.sort(key=lambda x: fitness(x[1]), reverse=True)
+        top_team = final_scored[0]
 
-    if not best_result or fitness(top_team[1]) > fitness(best_result[1]):
-        best_result = top_team
+        if not best_result or fitness(top_team[1]) > fitness(best_result[1]):
+            best_result = top_team
 
-best_team, best_stat = best_result
+    best_team, best_stat = best_result
+    used_preset = False
 
-if use_preset:
-    print("Preset fitness:", fitness(preset_stat))
-    print("GA fitness:", fitness(best_stat))
+    if use_preset:
+        print("Preset fitness:", fitness(preset_stat))
+        print("GA fitness:", fitness(best_stat))
 
-    if fitness(preset_stat) > fitness(best_stat):
-        best_team = preset_team
-        best_stat = preset_stat
+        if fitness(preset_stat) > fitness(best_stat):
+            best_team = preset_team
+            best_stat = preset_stat
+            used_preset = True
 
     return jsonify({
         "best_team": best_team,
         "stat": best_stat,
-        "source": "Preset" if use_preset and best_team == preset_team else "GA",
-        "preset_name": preset_name if use_preset and best_team == preset_team else None
+        "source": "Preset" if used_preset else "GA",
+        "preset_name": preset_name if used_preset else None
     })
 
 if __name__ == '__main__':
