@@ -118,8 +118,8 @@ def optimize():
     best_result = None
     preset_name = None
 
-    # Gunakan preset hanya jika user hanya memilih 3 ninja utama
-    use_preset = len(ninjas) == 3
+
+    use_preset = len(ninjas) > 50
 
     if use_preset:
         preset_name, preset_team = find_best_preset()
